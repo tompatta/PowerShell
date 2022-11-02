@@ -1,3 +1,35 @@
+<#
+.SYNOPSIS
+  Finds all FSlogix folders in specified directory and cross checks 
+  if the user is disabled, exists and/or is inactive. Based on specified 
+  parameters, will then remove the stale containers from the directory.
+
+.DESCRIPTION
+  Will automatically clean up stale FSLogix container folders based on 
+  the specified criteria.
+
+.PARAMETER *
+    Parameters are available as specified in the param block below.
+
+.NOTES
+  Version:        1.0
+  Author:         Tom Schoen
+  Creation Date:  01-11-2022
+  Purpose/Change: Initial script development
+  
+.EXAMPLE
+  Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\".
+    .\script.ps1 -ContainerPath "F:\" -DeleteDisabled -DeleteRemoved -DeleteInactive -ExcludeFolders @("folder1","folder2")
+
+.EXAMPLE
+  Remove all containers for disabled users from Azure Files share "\\mystorageaccount.file.core.windows.net\share" and don't ask for confirmation.
+    .\script.ps1 -ContainerPath "\\mystorageaccount.file.core.windows.net\share" -DeleteDisabled -Confirm
+
+.EXAMPLE
+  Dry run for removal of all containers for users that have not logged in for 30 days from Azure Files share "\\mystorageaccount.file.core.windows.net\share".
+    .\script.ps1 -ContainerPath "\\mystorageaccount.file.core.windows.net\share" -DeleteInactive -InactiveDays 30 -WhatIf
+#>
+
 [CmdletBinding()]
 param(
     [Parameter(Mandatory=$true,HelpMessage="The full (UNC) path to the FSLogix container directory.")]
