@@ -1,70 +1,70 @@
 <#
 .SYNOPSIS
-  Finds all FSlogix folders in specified directory and cross checks 
-  if the user is disabled, exists and/or is inactive. Based on specified 
-  parameters, will then remove the stale containers from the directory.
+    Finds all FSlogix folders in specified directory and cross checks 
+    if the user is disabled, exists and/or is inactive. Based on specified 
+    parameters, will then remove the stale containers from the directory.
 
 .DESCRIPTION
-  Will automatically clean up stale FSLogix container folders based on 
-  the specified criteria.
+    Will automatically clean up stale FSLogix container folders based on 
+    the specified criteria.
 
 .PARAMETER *
     Parameters are available as specified in the param block below.
 
 .NOTES
-  Version:        1.0
-  Author:         Tom Schoen
-  Creation Date:  01-11-2022
-  Purpose/Change: Initial script development
+    Version:        1.0
+    Author:         Tom Schoen
+    Creation Date:  01-11-2022
+    Purpose/Change: Initial script development
   
 .EXAMPLE
-  Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\".
+    Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\".
     .\script.ps1 -ContainerPath "F:\" -DeleteDisabled -DeleteRemoved -DeleteInactive -ExcludeFolders @("folder1","folder2")
 
 .EXAMPLE
-  Remove all containers for disabled users from Azure Files share "\\mystorageaccount.file.core.windows.net\share" and don't ask for confirmation.
+    Remove all containers for disabled users from Azure Files share "\\mystorageaccount.file.core.windows.net\share" and don't ask for confirmation.
     .\script.ps1 -ContainerPath "\\mystorageaccount.file.core.windows.net\share" -DeleteDisabled -Confirm
 
 .EXAMPLE
-  Dry run for removal of all containers for users that have not logged in for 30 days from Azure Files share "\\mystorageaccount.file.core.windows.net\share".
+    Dry run for removal of all containers for users that have not logged in for 30 days from Azure Files share "\\mystorageaccount.file.core.windows.net\share".
     .\script.ps1 -ContainerPath "\\mystorageaccount.file.core.windows.net\share" -DeleteInactive -InactiveDays 30 -WhatIf
 #>
 
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,HelpMessage="The full (UNC) path to the FSLogix container directory.")]
+    [Parameter(Mandatory, HelpMessage = "The full (UNC) path to the FSLogix container directory.")]
     [string]
     $ContainerPath,
 
-    [Parameter(HelpMessage="If set, enables dry-run mode.")]
+    [Parameter(HelpMessage = "If set, enables dry-run mode.")]
     [switch]
     $WhatIf,
 
-    [Parameter(HelpMessage="Array of strings with folder names to exclude in recursion.")]
+    [Parameter(HelpMessage = "Array of strings with folder names to exclude in recursion.")]
     [string[]]
     $ExcludeFolders,
 
-    [Parameter(HelpMessage="Number of days a user must have not logged into Active Directory to be considered inactive.")]
+    [Parameter(HelpMessage = "Number of days a user must have not logged into Active Directory to be considered inactive.")]
     [int]
     $InactiveDays = 90,
 
-    [Parameter(HelpMessage="If set, containers belonging to disabled users will be deleted.")]
+    [Parameter(HelpMessage = "If set, containers belonging to disabled users will be deleted.")]
     [switch]
     $DeleteDisabled,
 
-    [Parameter(HelpMessage="If set, containers belonging to removed/non-existing users will be deleted.")]
+    [Parameter(HelpMessage = "If set, containers belonging to removed/non-existing users will be deleted.")]
     [switch]
     $DeleteRemoved,
 
-    [Parameter(HelpMessage="If set, containers belonging to inactive users will be deleted.")]
+    [Parameter(HelpMessage = "If set, containers belonging to inactive users will be deleted.")]
     [switch]
     $DeleteInactive,
 
-    [Parameter(HelpMessage="If set, don't ask for confirmation before execution.")]
+    [Parameter(HelpMessage = "If set, don't ask for confirmation before execution.")]
     [switch]
     $Confirm,
 
-    [Parameter(HelpMessage="If set, don't use the FlipFlop name convention (%username%_%sid%) but use the default (%sid%_%username%)")]
+    [Parameter(HelpMessage = "if set, don't use the FlipFlop name convention (%username%_%sid%) but use the default (%sid%_%username%)")]
     [switch]
     $NoFlipFlop
 )
@@ -101,9 +101,10 @@ function Show-ConsoleMessage {
 
     Write-Host " $Indicator " -NoNewline -ForegroundColor $IndicatorTextColor -BackgroundColor $IndicatorBackgroundColor
     
-    If($FullWidth){
-        Write-Host " $Message ".PadRight($Host.UI.RawUI.WindowSize.Width-($Indicator.Length)-2," ") -ForegroundColor $MessageTextColor -BackgroundColor $MessageBackgroundColor
-    }else{
+    if ($FullWidth) {
+        Write-Host " $Message ".PadRight($Host.UI.RawUI.WindowSize.Width - ($Indicator.Length) - 2, " ") -ForegroundColor $MessageTextColor -BackgroundColor $MessageBackgroundColor
+    }
+    else {
         Write-Host " $Message " -ForegroundColor $MessageTextColor -BackgroundColor $MessageBackgroundColor
     }
 }
@@ -121,22 +122,23 @@ Show-ConsoleMessage -Message "        Removed Users:    $DeleteRemoved" -Message
 Show-ConsoleMessage -Message "        Disabled Users:   $DeleteDisabled" -MessageTextColor "White" -Indicator "  "
 Show-ConsoleMessage -Message "        Inactive Users:   $DeleteInactive ($InactiveDays days)" -MessageTextColor "White" -Indicator "  "
 
-If(-not (Test-Path -Path $ContainerPath)){
+if (-not (Test-Path -Path $ContainerPath)) {
     Show-ConsoleMessage -Message "Error: Container Path not accessible or does not exist." -MessageBackgroundColor "Red" -MessageTextColor "White" -Indicator ":("
     Exit
 }
 
-If($WhatIf -eq $true){
+if ($True -eq $WhatIf) {
     Show-ConsoleMessage -Message "Info: Executing with WhatIf switch set. No changes will be made." -MessageTextColor "White" -Indicator ":)"
-}Elseif($False -eq $Confirm){
+}
+elseif ($False -eq $Confirm) {
     Show-ConsoleMessage -Message "Info: Executing without WhatIf switch set. Specified containers will be deleted." -MessageTextColor "White" -Indicator ":)"
     
-    $ConfirmTitle    = 'Confirm execution'
+    $ConfirmTitle = 'Confirm execution'
     $ConfirmQuestion = 'Do you want to continue?'
-    $ConfirmChoices  = '&Yes', '&No'
+    $ConfirmChoices = '&Yes', '&No'
 
     $ConfirmDecision = $Host.UI.PromptForChoice($ConfirmTitle, $ConfirmQuestion, $ConfirmChoices, 1)
-    if($ConfirmDecision -eq 1){
+    if ($ConfirmDecision -eq 1) {
         Show-ConsoleMessage -Message "Info: Execution stopped by user." -MessageTextColor "White" -Indicator ":)"
         Exit
     }
@@ -144,42 +146,44 @@ If($WhatIf -eq $true){
 
 $ContainerDirs = Get-ChildItem -Path $ContainerPath -Directory -Exclude $ExcludeFolders
 
-Foreach($ContainerDir in $ContainerDirs){
+Foreach ($ContainerDir in $ContainerDirs) {
     $ContainerCount++
 
-    If($True -eq $NoFlipFlop){
+    if ($True -eq $NoFlipFlop) {
         $UserName = $ContainerDir.Name.Substring($ContainerDir.Name.IndexOf('_') + 1)
-    }Else{
+    }
+    Else {
         $UserName = $ContainerDir.Name.Substring(0, $ContainerDir.Name.IndexOf('_S-1-5'))
     }
 
     $ContainerDir = Join-Path $ContainerPath $ContainerDir
-    try{ 
-        $ADUser = Get-ADUser -Identity $UserName -Properties sAMAccountName,Enabled,lastLogon,lastLogonDate
+    try { 
+        $ADUser = Get-ADUser -Identity $UserName -Properties sAMAccountName, Enabled, lastLogon, lastLogonDate
     }
-    catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException]{
+    catch [Microsoft.ActiveDirectory.Management.ADIdentityNotFoundException] {
         $ADUser = $False
     }
 
-    $ContainerSize = (Get-ChildItem -Path $ContainerDir | Measure-Object Length -Sum).Sum /1Gb
+    $ContainerSize = (Get-ChildItem -Path $ContainerDir | Measure-Object Length -Sum).Sum / 1Gb
     Show-ConsoleMessage -Message ("Info: Processing $UserName ({0:N2} GB)." -f $ContainerSize) -MessageTextColor "White" -Indicator ":)"
 
-    If($False -eq $ADUser -and $True -eq $DeleteRemoved){
+    if ($False -eq $ADUser -and $True -eq $DeleteRemoved) {
         Show-ConsoleMessage -Message "    Info: Account for $UserName does not exist." -MessageTextColor "White" -Indicator ":)"
 
-        If($WhatIf -ne $true){
+        if ($True -eq $WhatIf) {
             Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on removed/non-existent state of account." -MessageTextColor "White" -Indicator ":)"
             
-            try{
+            try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
-            catch{
+            catch {
                 Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
                 Continue
             }
 
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
-        }Else{
+        }
+        Else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on removed/non-existent state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
         }
@@ -187,22 +191,23 @@ Foreach($ContainerDir in $ContainerDirs){
         Continue
     }
 
-    If($False -eq $ADUser.Enabled -and $True -eq $DeleteDisabled){
+    if ($False -eq $ADUser.Enabled -and $True -eq $DeleteDisabled) {
         Show-ConsoleMessage -Message "    Info: Account for $UserName is disabled." -MessageTextColor "White" -Indicator ":)"
 
-        If($WhatIf -ne $true){
+        if ($True -eq $WhatIf) {
             Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on disabled state of account." -MessageTextColor "White" -Indicator ":)"
 
-            try{
+            try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
-            catch{
+            catch {
                 Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
                 Continue
             }
 
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
-        }Else{
+        }
+        Else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on disabled state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
         }
@@ -210,22 +215,23 @@ Foreach($ContainerDir in $ContainerDirs){
         Continue
     }
     
-    If($ADUser.lastLogonDate -lt ((Get-Date).AddDays(-($InactiveDays))) -and $True -eq $DeleteInactive){
+    if ($ADUser.lastLogonDate -lt ((Get-Date).AddDays( - ($InactiveDays))) -and $True -eq $DeleteInactive) {
         Show-ConsoleMessage -Message "    Info: Account for $UserName has been inactive for more than $InactiveDays." -MessageTextColor "White" -Indicator ":)"
 
-        If($WhatIf -ne $true){
+        if ($True -eq $WhatIf) {
             Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on inactive state of account." -MessageTextColor "White" -Indicator ":)"
 
-            try{
+            try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
-            catch{
+            catch {
                 Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
                 Continue
             }
 
             $SpaceInactive = $SpaceInactive + $ContainerSize
-        }Else{
+        }
+        Else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on inactive state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceInactive = $SpaceInactive + $ContainerSize
         }
