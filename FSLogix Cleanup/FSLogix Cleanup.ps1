@@ -41,23 +41,30 @@ function Show-ConsoleMessage {
     [CmdletBinding()]
     param(
         [Parameter(Mandatory)]
-        [string]$Message,
+        [string]
+        $Message,
 
-        [string]$Indicator = "*",
+        [string]
+        $Indicator = "*",
 
-        [bool]$FullWidth = $False,
+        [switch]
+        $FullWidth,
 
         [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })]  
-        [string]$IndicatorTextColor = "Black",
+        [string]
+        $IndicatorTextColor = "Black",
 
         [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })]  
-        [string]$IndicatorBackgroundColor = "White",
+        [string]
+        $IndicatorBackgroundColor = "White",
 
         [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })] 
-        [string]$MessageTextColor = "Black",
+        [string]
+        $MessageTextColor = "Black",
 
         [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })] 
-        [string]$MessageBackgroundColor = "Blue"
+        [string]
+        $MessageBackgroundColor = "Blue"
     )
 
     Write-Host " $Indicator " -NoNewline -ForegroundColor $IndicatorTextColor -BackgroundColor $IndicatorBackgroundColor
