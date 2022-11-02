@@ -1,6 +1,6 @@
 [CmdletBinding()]
 param(
-    [Parameter(Mandatory=$true,HelpMessage="The full(UNC) path to the FSLogix container directory.")]
+    [Parameter(Mandatory=$true,HelpMessage="The full (UNC) path to the FSLogix container directory.")]
     [string]
     $ContainerPath,
 
