@@ -24,7 +24,7 @@ Will automatically clean up stale FSLogix container folders based on the specifi
 The full (UNC) path to the FSLogix container directory.
 
 ```powershell
--Containerpath "\\\mystorageaccount.file.core.windows.net\share"
+-Containerpath "\\mystorageaccount.file.core.windows.net\share"
 ```
 
 ### [-DeleteRemoved]
