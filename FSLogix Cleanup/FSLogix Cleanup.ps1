@@ -146,13 +146,13 @@ elseif ($False -eq $Confirm) {
 
 $ContainerDirs = Get-ChildItem -Path $ContainerPath -Directory -Exclude $ExcludeFolders
 
-Foreach ($ContainerDir in $ContainerDirs) {
+foreach ($ContainerDir in $ContainerDirs) {
     $ContainerCount++
 
     if ($True -eq $NoFlipFlop) {
         $UserName = $ContainerDir.Name.Substring($ContainerDir.Name.IndexOf('_') + 1)
     }
-    Else {
+    else {
         $UserName = $ContainerDir.Name.Substring(0, $ContainerDir.Name.IndexOf('_S-1-5'))
     }
 
@@ -183,7 +183,7 @@ Foreach ($ContainerDir in $ContainerDirs) {
 
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
         }
-        Else {
+        else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on removed/non-existent state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
         }
@@ -207,7 +207,7 @@ Foreach ($ContainerDir in $ContainerDirs) {
 
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
         }
-        Else {
+        else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on disabled state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
         }
@@ -231,7 +231,7 @@ Foreach ($ContainerDir in $ContainerDirs) {
 
             $SpaceInactive = $SpaceInactive + $ContainerSize
         }
-        Else {
+        else {
             Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on inactive state of account." -MessageTextColor "White" -Indicator ":)"
             $SpaceInactive = $SpaceInactive + $ContainerSize
         }
