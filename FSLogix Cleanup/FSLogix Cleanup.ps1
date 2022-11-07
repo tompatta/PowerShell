@@ -36,10 +36,10 @@ param(
     [string]
     $ContainerPath,
 
-    [Parameter(HelpMessage = "The full (UNC) path to output the log file to.")]
+    [Parameter(HelpMessage = "If set to a full (UNC) path, the script will output the log file to this directory.")]
     $LogPath = $False,
 
-    [Parameter(HelpMessage = "The name to prepend to the log file.")]
+    [Parameter(HelpMessage = "Name that appears in the name of the log file.")]
     [string]
     $LogName = "FSLogixCleanUp",
 
@@ -82,13 +82,16 @@ function Write-Log {
         [string]
         $LogMessage,
 
+        [Parameter(Mandatory)]
         [string]
         $LogLevel,
 
+        [Parameter(Mandatory)]
         $LogPath,
 
+        [Parameter(Mandatory)]
         [string]
-        $LogName = "ScriptLog",
+        $LogName,
 
         [string]
         $LogHeader,
@@ -106,7 +109,7 @@ function Write-Log {
 
     if ($LogPath) {
         $File = (Join-Path -Path $LogPath -ChildPath "$LogName.log")
-        if (-not (Test-Path $File)) {
+        if (-not (Test-Path $File) -and $LogHeader) {
             Add-Content -Path $File -Value ""
         }
         Add-content -Path $File -Value $Message
@@ -180,7 +183,7 @@ foreach ($ContainerDir in $ContainerDirs) {
     if ($False -eq $ADUser -and $True -eq $DeleteRemoved) {
         Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName does not exist." -LogLevel "Info"
 
-        if ($True -eq $WhatIf) {
+        if ($False -eq $WhatIf) {
             Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on removed/non-existent state of account." -LogLevel "Info"
             
             try {
@@ -204,7 +207,7 @@ foreach ($ContainerDir in $ContainerDirs) {
     if ($False -eq $ADUser.Enabled -and $True -eq $DeleteDisabled) {
         Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName is disabled." -LogLevel "Info"
 
-        if ($True -eq $WhatIf) {
+        if ($False -eq $WhatIf) {
             Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on disabled state of account." -LogLevel "Info"
 
             try {
@@ -228,7 +231,7 @@ foreach ($ContainerDir in $ContainerDirs) {
     if ($ADUser.lastLogonDate -lt ((Get-Date).AddDays( - ($InactiveDays))) -and $True -eq $DeleteInactive) {
         Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName has been inactive for more than $InactiveDays." -LogLevel "Info"
 
-        if ($True -eq $WhatIf) {
+        if ($False -eq $WhatIf) {
             Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on inactive state of account." -LogLevel "Info"
 
             try {
