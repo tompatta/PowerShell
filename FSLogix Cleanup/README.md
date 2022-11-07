@@ -57,6 +57,14 @@ Number of days a user must have not logged into Active Directory to be considere
 -InactiveDays 180
 ```
 
+### [-LogName]
+
+Name that appears in the name of the log file. Defaults to 'FSLogixCleanUp'.
+
+### [-LogPath]
+
+If set to a full (UNC) path, the script will output the log file to this directory.
+
 ### [-NoFlipFlop]
 
 If set, don't use the FlipFlop name convention (%username%\_%sid%) but use the default (%sid%\_%username%).
