@@ -12,14 +12,14 @@
     Parameters are available as specified in the param block below.
 
 .NOTES
-    Version:        1.0
+    Version:        1.1
     Author:         Tom Schoen
     Creation Date:  01-11-2022
     Purpose/Change: Initial script development
   
 .EXAMPLE
-    Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\".
-    .\script.ps1 -ContainerPath "F:\" -DeleteDisabled -DeleteRemoved -DeleteInactive -ExcludeFolders @("folder1","folder2")
+    Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\" and output logs to "C:\temp".
+    .\script.ps1 -ContainerPath "F:\" -DeleteDisabled -DeleteRemoved -DeleteInactive -ExcludeFolders @("folder1","folder2") -LogPath "C:\temp"
 
 .EXAMPLE
     Remove all containers for disabled users from Azure Files share "\\mystorageaccount.file.core.windows.net\share" and don't ask for confirmation.
@@ -35,6 +35,13 @@ param(
     [Parameter(Mandatory, HelpMessage = "The full (UNC) path to the FSLogix container directory.")]
     [string]
     $ContainerPath,
+
+    [Parameter(HelpMessage = "The full (UNC) path to output the log file to.")]
+    $LogPath = $False,
+
+    [Parameter(HelpMessage = "The name to prepend to the log file.")]
+    [string]
+    $LogName = "FSLogixCleanUp",
 
     [Parameter(HelpMessage = "If set, enables dry-run mode.")]
     [switch]
@@ -69,69 +76,72 @@ param(
     $NoFlipFlop
 )
 
-function Show-ConsoleMessage {
-    [CmdletBinding()]
-    param(
+function Write-Log {
+    param (
         [Parameter(Mandatory)]
         [string]
-        $Message,
+        $LogMessage,
 
         [string]
-        $Indicator = "*",
+        $LogLevel,
+
+        $LogPath,
+
+        [string]
+        $LogName = "ScriptLog",
+
+        [string]
+        $LogHeader,
 
         [switch]
-        $FullWidth,
-
-        [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })]  
-        [string]
-        $IndicatorTextColor = "Black",
-
-        [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })]  
-        [string]
-        $IndicatorBackgroundColor = "White",
-
-        [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })] 
-        [string]
-        $MessageTextColor = "Black",
-
-        [ValidateScript({ $_ -in [enum]::GetValues([System.ConsoleColor]) })] 
-        [string]
-        $MessageBackgroundColor = "Blue"
+        $NoDate
     )
-
-    Write-Host " $Indicator " -NoNewline -ForegroundColor $IndicatorTextColor -BackgroundColor $IndicatorBackgroundColor
     
-    if ($FullWidth) {
-        Write-Host " $Message ".PadRight($Host.UI.RawUI.WindowSize.Width - ($Indicator.Length) - 2, " ") -ForegroundColor $MessageTextColor -BackgroundColor $MessageBackgroundColor
+    if ($NoDate) {
+        $Message = "[$LogLevel] $LogMessage"
     }
     else {
-        Write-Host " $Message " -ForegroundColor $MessageTextColor -BackgroundColor $MessageBackgroundColor
+        $Message = "$(Get-Date -Format "u") [$LogLevel] $LogMessage"
     }
+
+    if ($LogPath) {
+        $File = (Join-Path -Path $LogPath -ChildPath "$LogName.log")
+        if (-not (Test-Path $File)) {
+            Add-Content -Path $File -Value ""
+        }
+        Add-content -Path $File -Value $Message
+    }
+    
+    Write-Output $Message
+
 }
 
 [decimal]$SpaceDisabled = 0
 [decimal]$SpaceRemoved = 0
 [decimal]$SpaceInactive = 0
 [int]$ContainerCount = 0
+$LogName = "$LogName`_$(Get-Date -Format "yyyyMMdd_HHmmss")"
 
-Show-ConsoleMessage -Message "Info: Starting execution" -MessageTextColor "White" -Indicator ":)"
-Show-ConsoleMessage -Message "    Container Path:       $ContainerPath" -MessageTextColor "White" -Indicator "  "
-Show-ConsoleMessage -Message "    Excluded folders:     $ExcludeFolders" -MessageTextColor "White" -Indicator "  "
-Show-ConsoleMessage -Message "    Deletion options" -MessageTextColor "White" -Indicator "  "
-Show-ConsoleMessage -Message "        Removed Users:    $DeleteRemoved" -MessageTextColor "White" -Indicator "  "
-Show-ConsoleMessage -Message "        Disabled Users:   $DeleteDisabled" -MessageTextColor "White" -Indicator "  "
-Show-ConsoleMessage -Message "        Inactive Users:   $DeleteInactive ($InactiveDays days)" -MessageTextColor "White" -Indicator "  "
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "========================================" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Starting execution" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Container Path:       $ContainerPath" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Excluded folders:     $ExcludeFolders" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deletion options" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Removed Users:        $DeleteRemoved" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Disabled Users:       $DeleteDisabled" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Inactive Users:       $DeleteInactive ($InactiveDays days)" -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "========================================" -LogLevel "Info"
 
 if (-not (Test-Path -Path $ContainerPath)) {
-    Show-ConsoleMessage -Message "Error: Container Path not accessible or does not exist." -MessageBackgroundColor "Red" -MessageTextColor "White" -Indicator ":("
+    Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Container Path not accessible or does not exist." -LogLevel "Error"
     Exit
 }
 
 if ($True -eq $WhatIf) {
-    Show-ConsoleMessage -Message "Info: Executing with WhatIf switch set. No changes will be made." -MessageTextColor "White" -Indicator ":)"
+    Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Executing with WhatIf switch set. No changes will be made." -LogLevel "Info"
 }
 elseif ($False -eq $Confirm) {
-    Show-ConsoleMessage -Message "Info: Executing without WhatIf switch set. Specified containers will be deleted." -MessageTextColor "White" -Indicator ":)"
+    Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Executing without WhatIf switch set. Specified containers will be deleted." -LogLevel "Info"
     
     $ConfirmTitle = 'Confirm execution'
     $ConfirmQuestion = 'Do you want to continue?'
@@ -139,7 +149,7 @@ elseif ($False -eq $Confirm) {
 
     $ConfirmDecision = $Host.UI.PromptForChoice($ConfirmTitle, $ConfirmQuestion, $ConfirmChoices, 1)
     if ($ConfirmDecision -eq 1) {
-        Show-ConsoleMessage -Message "Info: Execution stopped by user." -MessageTextColor "White" -Indicator ":)"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Execution stopped by user." -LogLevel "Info"
         Exit
     }
 }
@@ -165,85 +175,85 @@ foreach ($ContainerDir in $ContainerDirs) {
     }
 
     $ContainerSize = (Get-ChildItem -Path $ContainerDir | Measure-Object Length -Sum).Sum / 1Gb
-    Show-ConsoleMessage -Message ("Info: Processing $UserName ({0:N2} GB)." -f $ContainerSize) -MessageTextColor "White" -Indicator ":)"
+    Write-Log -LogPath $LogPath -LogName $LogName -LogMessage ("Processing $UserName ({0:N2} GB)." -f $ContainerSize) -LogLevel "Info"
 
     if ($False -eq $ADUser -and $True -eq $DeleteRemoved) {
-        Show-ConsoleMessage -Message "    Info: Account for $UserName does not exist." -MessageTextColor "White" -Indicator ":)"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName does not exist." -LogLevel "Info"
 
         if ($True -eq $WhatIf) {
-            Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on removed/non-existent state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on removed/non-existent state of account." -LogLevel "Info"
             
             try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
                 Continue
             }
 
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
         }
         else {
-            Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on removed/non-existent state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "WhatIf: Deleting container for $UserName based on removed/non-existent state of account." -LogLevel "Info"
             $SpaceRemoved = $SpaceRemoved + $ContainerSize
         }
-        Show-ConsoleMessage -Message "    Success: Container deleted for $UserName." -MessageBackgroundColor "Green" -Indicator ":D"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Container deleted for $UserName."  -LogLevel "Success"
         Continue
     }
 
     if ($False -eq $ADUser.Enabled -and $True -eq $DeleteDisabled) {
-        Show-ConsoleMessage -Message "    Info: Account for $UserName is disabled." -MessageTextColor "White" -Indicator ":)"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName is disabled." -LogLevel "Info"
 
         if ($True -eq $WhatIf) {
-            Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on disabled state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on disabled state of account." -LogLevel "Info"
 
             try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
                 Continue
             }
 
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
         }
         else {
-            Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on disabled state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "WhatIf: Deleting container for $UserName based on disabled state of account." -LogLevel "Info"
             $SpaceDisabled = $SpaceDisabled + $ContainerSize
         }
-        Show-ConsoleMessage -Message "    Success: Container deleted for $UserName." -MessageBackgroundColor "Green" -Indicator ":D"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Container deleted for $UserName." -LogLevel "Success"
         Continue
     }
     
     if ($ADUser.lastLogonDate -lt ((Get-Date).AddDays( - ($InactiveDays))) -and $True -eq $DeleteInactive) {
-        Show-ConsoleMessage -Message "    Info: Account for $UserName has been inactive for more than $InactiveDays." -MessageTextColor "White" -Indicator ":)"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName has been inactive for more than $InactiveDays." -LogLevel "Info"
 
         if ($True -eq $WhatIf) {
-            Show-ConsoleMessage -Message "    Info: Deleting container for $UserName based on inactive state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on inactive state of account." -LogLevel "Info"
 
             try {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Show-ConsoleMessage -Message "    Warning: Could not delete container for $UserName`: $($_)." -MessageBackgroundColor "Yellow" -Indicator ":|"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
                 Continue
             }
 
             $SpaceInactive = $SpaceInactive + $ContainerSize
         }
         else {
-            Show-ConsoleMessage -Message "    WhatIf: Deleting container for $UserName based on inactive state of account." -MessageTextColor "White" -Indicator ":)"
+            Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "WhatIf: Deleting container for $UserName based on inactive state of account." -LogLevel "Info"
             $SpaceInactive = $SpaceInactive + $ContainerSize
         }
-        Show-ConsoleMessage -Message "    Success: Container deleted for $UserName." -MessageBackgroundColor "Green" -Indicator ":D"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Container deleted for $UserName." -LogLevel "Success"
         Continue
     }
-    Show-ConsoleMessage -Message "    Success: No action needed for $UserName." -MessageBackgroundColor "Green" -Indicator ":D"
+    Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "No action needed for $UserName." -LogLevel "Success"
 }
 
-Show-ConsoleMessage -Message "Success: Script execution completed" -MessageBackgroundColor "Green" -Indicator ":D"
-Show-ConsoleMessage -Message "    $ContainerCount containers processed." -MessageBackgroundColor "Green" -Indicator "  "
-Show-ConsoleMessage -Message "    $("{0:N2} GB" -f $SpaceRemoved) reclaimed from removed/non-existent users." -MessageBackgroundColor "Green" -Indicator "  "
-Show-ConsoleMessage -Message "    $("{0:N2} GB" -f $SpaceDisabled) reclaimed from disabled users." -MessageBackgroundColor "Green" -Indicator "  "
-Show-ConsoleMessage -Message "    $("{0:N2} GB" -f $SpaceInactive) reclaimed from inactive users." -MessageBackgroundColor "Green" -Indicator "  "
-Show-ConsoleMessage -Message "    $("{0:N2} GB" -f ($SpaceRemoved+$SpaceDisabled+$SpaceInactive)) reclaimed in total." -MessageBackgroundColor "Green" -Indicator "  "
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Script execution completed" -LogLevel "Success"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "$ContainerCount containers processed." -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "$("{0:N2} GB" -f $SpaceRemoved) reclaimed from removed/non-existent users." -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "$("{0:N2} GB" -f $SpaceDisabled) reclaimed from disabled users." -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "$("{0:N2} GB" -f $SpaceInactive) reclaimed from inactive users." -LogLevel "Info"
+Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "$("{0:N2} GB" -f ($SpaceRemoved+$SpaceDisabled+$SpaceInactive)) reclaimed in total." -LogLevel "Info"
