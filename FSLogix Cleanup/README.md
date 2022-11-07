@@ -13,6 +13,8 @@ Will automatically clean up stale FSLogix container folders based on the specifi
     [-ExcludeFolders <array>]
     [-InactiveDays <int>]
     [-NoFlipFlop]
+    [-LogName]
+    [-LogPath]
     [-Confirm]
     [-Whatif]
 ```
