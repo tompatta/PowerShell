@@ -12,15 +12,19 @@
     Purpose/Change: Initial function development
   
 .EXAMPLE
-    Writes a log entry to "C:\Temp\ScriptExecution.log": 2022-11-05 13:00:00Z [Error] An error message.
+    Writes a log entry to "C:\Temp\ScriptExecution.log" and the host console: 2022-11-05 13:00:00Z [Error] An error message.
     Write-Log -LogPath "C:\Temp" -LogName "ScriptExecution" -LogMessage "An error message." -LogLevel "Error"
 
 .EXAMPLE
-    Writes a log entry without timestamp to "C:\Temp\Script.log": [Info] An informational message.
+    Writes a log entry to the host console only: 2022-11-05 13:00:00Z [Error] An error message.
+    Write-Log -LogMessage "An error message." -LogLevel "Error"
+
+.EXAMPLE
+    Writes a log entry without timestamp to "C:\Temp\Script.log" and the host console: [Info] An informational message.
     Write-Log -LogPath "C:\Temp" -LogName "Script" -LogMessage "An informational message." -LogLevel "Info" -NoDate
 
 .EXAMPLE
-    Writes a log entry to "C:\Temp\ScriptExecution.log": 2022-11-05 13:00:00Z [Error] An error message.
+    Writes a log entry to "C:\Temp\ScriptExecution.log" and the host console: 2022-11-05 13:00:00Z [Error] An error message.
     Prepends the header "Top of the log" to the log file if it is created during this execution.
     Write-Log -LogPath "C:\Temp" -LogName "ScriptExecution" -LogMessage "An error message." -LogLevel "Error" -LogHeader "Top of the log"
 #>
