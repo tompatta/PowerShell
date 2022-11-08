@@ -24,6 +24,7 @@
     Prepends the header "Top of the log" to the log file if it is created during this execution.
     Write-Log -LogPath "C:\Temp" -LogName "ScriptExecution" -LogMessage "An error message." -LogLevel "Error" -LogHeader "Top of the log"
 #>
+
 function Write-Log {
     param (
         [Parameter(Mandatory)]
