@@ -15,7 +15,7 @@
     Version:        1.1
     Author:         Tom Schoen
     Creation Date:  01-11-2022
-    Purpose/Change: Initial script development
+    Purpose/Change: Add logging functionality
   
 .EXAMPLE
     Remove all containers for disabled, removed/non-existent and inactive users but exclude folders "folder1" and "folder2" from location "F:\" and output logs to "C:\temp".
@@ -190,7 +190,7 @@ foreach ($ContainerDir in $ContainerDirs) {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)" -LogLevel "Warning"
                 Continue
             }
 
@@ -214,7 +214,7 @@ foreach ($ContainerDir in $ContainerDirs) {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)" -LogLevel "Warning"
                 Continue
             }
 
@@ -229,7 +229,7 @@ foreach ($ContainerDir in $ContainerDirs) {
     }
     
     if ($ADUser.lastLogonDate -lt ((Get-Date).AddDays( - ($InactiveDays))) -and $True -eq $DeleteInactive) {
-        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName has been inactive for more than $InactiveDays." -LogLevel "Info"
+        Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Account for $UserName has been inactive for more than $InactiveDays days." -LogLevel "Info"
 
         if ($False -eq $WhatIf) {
             Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Deleting container for $UserName based on inactive state of account." -LogLevel "Info"
@@ -238,7 +238,7 @@ foreach ($ContainerDir in $ContainerDirs) {
                 Remove-Item -Path $ContainerDir -Recurse -Force -ErrorAction Stop
             }
             catch {
-                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)." -LogLevel "Warning"
+                Write-Log -LogPath $LogPath -LogName $LogName -LogMessage "Could not delete container for $UserName`: $($_)" -LogLevel "Warning"
                 Continue
             }
 
